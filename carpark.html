@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Car Park Management System</title>
+  <style>
+    body { font-family: Arial; margin: 20px; background: #f5f5f5; }
+    h1   { background: #1a1a2e; color: white; padding: 15px; margin: 0 0 20px; }
+    h2   { color: #1a1a2e; margin-top: 0; }
+
+    .tabs { margin-bottom: 20px; }
+    .tabs button {
+      padding: 8px 16px; margin-right: 5px;
+      background: #ddd; border: none; cursor: pointer; border-radius: 4px;
+    }
+    .tabs button.active { background: #1a1a2e; color: white; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .box { background: white; padding: 20px; margin-bottom: 20px; border-radius: 6px; }
+    input { padding: 7px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; width: 200px; }
+    button.add { background: #1a1a2e; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
+    button.del { background: #c1440e; color: white; padding: 4px 10px; border: none; border-radius: 4px; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #1a1a2e; color: white; padding: 8px; text-align: left; }
+    td { padding: 8px; border-bottom: 1px solid #eee; }
+    tr:hover td { background: #f9f9f9; }
+
+    .free     { color: green; font-weight: bold; }
+    .occupied { color: red;   font-weight: bold; }
+
+    #msg { position: fixed; bottom: 20px; right: 20px; background: #1a1a2e;
+           color: white; padding: 10px 20px; border-radius: 6px; display: none; }
+  </style>
+</head>
+<body>
+
+<h1>Car Park Management System</h1>
+
+<div class="tabs">
+  <button class="active" onclick="showTab('residents', this)">Residents</button>
+  <button onclick="showTab('guests',    this)">Guests</button>
+  <button onclick="showTab('slots',     this)">Parking Slots</button>
+  <button onclick="showTab('vehicles',  this)">Vehicles</button>
+  <button onclick="showTab('payments',  this)">Payments</button>
+  <button onclick="showTab('check',     this)">Check Vehicle</button>
+</div>
+
+<!-- RESIDENTS -->
+<div id="panel-residents" class="panel active">
+  <div class="box">
+    <h2>Add Resident</h2>
+    <input id="r-regno" placeholder="Reg Number">
+    <input id="r-name"  placeholder="Owner Name">
+    <input id="r-flat"  placeholder="Flat Number">
+    <input id="r-slot"  placeholder="Slot (1-5)" type="number">
+    <input id="r-vtype" placeholder="Vehicle Model">
+    <br><br>
+    <button class="add" onclick="addResident()">Add Resident</button>
+  </div>
+  <div class="box">
+    <h2>All Residents</h2>
+    <table>
+      <thead><tr><th>Reg No</th><th>Owner</th><th>Flat</th><th>Slot</th><th>Vehicle</th><th>Action</th></tr></thead>
+      <tbody id="res-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- GUESTS -->
+<div id="panel-guests" class="panel">
+  <div class="box">
+    <h2>Add Guest Entry</h2>
+    <input id="g-regno" placeholder="Reg Number">
+    <input id="g-name"  placeholder="Guest Name">
+    <input id="g-flat"  placeholder="Visiting Flat">
+    <input id="g-vtype" placeholder="Vehicle Model">
+    <br><br>
+    <button class="add" onclick="addGuest()">Record Entry</button>
+  </div>
+  <div class="box">
+    <h2>All Guests</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Reg No</th><th>Name</th><th>Flat</th><th>Vehicle</th><th>Entry Time</th><th>Exit Time</th></tr></thead>
+      <tbody id="guest-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PARKING SLOTS -->
+<div id="panel-slots" class="panel">
+  <div class="box">
+    <h2>Parking Slots</h2>
+    <table>
+      <thead><tr><th>Slot No</th><th>Type</th><th>Status</th></tr></thead>
+      <tbody id="slots-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- VEHICLES -->
+<div id="panel-vehicles" class="panel">
+  <div class="box">
+    <h2>All Vehicles</h2>
+    <table>
+      <thead><tr><th>Reg No</th><th>Model</th><th>Color</th><th>Owner</th><th>Category</th></tr></thead>
+      <tbody id="vehicles-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PAYMENTS -->
+<div id="panel-payments" class="panel">
+  <div class="box">
+    <h2>Payment Records</h2>
+    <table>
+      <thead><tr><th>Pay ID</th><th>Reg No</th><th>Guest</th><th>Hours</th><th>Amount</th><th>Time</th></tr></thead>
+      <tbody id="pay-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- CHECK VEHICLE -->
+<div id="panel-check" class="panel">
+  <div class="box">
+    <h2>Check Vehicle</h2>
+    <input id="cv-regno" placeholder="Enter Reg Number">
+    <button class="add" onclick="checkVehicle()">Check</button>
+    <p id="check-result" style="font-size:1.1rem; font-weight:bold; margin-top:15px;"></p>
+  </div>
+</div>
+
+<div id="msg"></div>
+
+<script>
+// Switch tabs
+function showTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  btn.classList.add('active');
+  loadTab(name);
+}
+
+// Show bottom message
+function showMsg(text) {
+  const m = document.getElementById('msg');
+  m.textContent = text;
+  m.style.display = 'block';
+  setTimeout(() => m.style.display = 'none', 2500);
+}
+
+// Call api.php
+async function callAPI(action, data = null) {
+  const url = 'api.php?action=' + action;
+  if (data) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  } else {
+    const res = await fetch(url);
+    return res.json();
+  }
+}
+
+// Load correct data for each tab
+function loadTab(name) {
+  if (name === 'residents') loadResidents();
+  if (name === 'guests')    loadGuests();
+  if (name === 'slots')     loadSlots();
+  if (name === 'vehicles')  loadVehicles();
+  if (name === 'payments')  loadPayments();
+}
+
+// RESIDENTS
+async function loadResidents() {
+  const rows = await callAPI('get_residents');
+  document.getElementById('res-body').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.REGNO}</td><td>${r.OWNNAME}</td><td>${r.FLATNO}</td>
+      <td>${r.SLOTNO}</td><td>${r.VTYPE}</td>
+      <td><button class="del" onclick="deleteResident('${r.REGNO}')">Delete</button></td>
+    </tr>`).join('');
+}
+
+async function addResident() {
+  const data = {
+    regno: document.getElementById('r-regno').value.trim(),
+    name:  document.getElementById('r-name').value.trim(),
+    flat:  document.getElementById('r-flat').value.trim(),
+    slot:  document.getElementById('r-slot').value.trim(),
+    vtype: document.getElementById('r-vtype').value.trim()
+  };
+  if (!data.regno || !data.name || !data.flat || !data.slot || !data.vtype) {
+    showMsg('Please fill all fields!'); return;
+  }
+  const res = await callAPI('add_resident', data);
+  showMsg(res.msg);
+  ['r-regno','r-name','r-flat','r-slot','r-vtype'].forEach(id => document.getElementById(id).value = '');
+  loadResidents();
+}
+
+async function deleteResident(regno) {
+  if (!confirm('Delete resident ' + regno + '?')) return;
+  const res = await callAPI('delete_resident', { regno });
+  showMsg(res.msg);
+  loadResidents();
+}
+
+// GUESTS
+async function loadGuests() {
+  const rows = await callAPI('get_guests');
+  document.getElementById('guest-body').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.GUESTID}</td><td>${r.REGNO}</td><td>${r.GNAME}</td>
+      <td>${r.FLATNO}</td><td>${r.VTYPE}</td>
+      <td>${r.ENTIME || '—'}</td><td>${r.EXTIME || 'Still Parked'}</td>
+    </tr>`).join('');
+}
+
+async function addGuest() {
+  const data = {
+    regno: document.getElementById('g-regno').value.trim(),
+    name:  document.getElementById('g-name').value.trim(),
+    flat:  document.getElementById('g-flat').value.trim(),
+    vtype: document.getElementById('g-vtype').value.trim()
+  };
+  if (!data.regno || !data.name || !data.flat || !data.vtype) {
+    showMsg('Please fill all fields!'); return;
+  }
+  const res = await callAPI('add_guest', data);
+  showMsg(res.msg);
+  ['g-regno','g-name','g-flat','g-vtype'].forEach(id => document.getElementById(id).value = '');
+  loadGuests();
+}
+
+// SLOTS
+async function loadSlots() {
+  const rows = await callAPI('get_slots');
+  document.getElementById('slots-body').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.SLOTNO}</td><td>${r.SLOTTYPE}</td>
+      <td class="${r.STATUS === 'FREE' ? 'free' : 'occupied'}">${r.STATUS}</td>
+    </tr>`).join('');
+}
+
+// VEHICLES
+async function loadVehicles() {
+  const rows = await callAPI('get_vehicles');
+  document.getElementById('vehicles-body').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.REGNO}</td><td>${r.VMODEL}</td><td>${r.VCOLOR}</td>
+      <td>${r.VOWNER}</td><td>${r.VCAT}</td>
+    </tr>`).join('');
+}
+
+// PAYMENTS
+async function loadPayments() {
+  const rows = await callAPI('get_payments');
+  document.getElementById('pay-body').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.PAYID}</td><td>${r.REGNO}</td><td>${r.GNAME}</td>
+      <td>${r.DURATION_HR} hr(s)</td><td>Rs. ${r.AMOUNT}</td><td>${r.PAYTIME}</td>
+    </tr>`).join('');
+}
+
+// CHECK VEHICLE
+async function checkVehicle() {
+  const regno = document.getElementById('cv-regno').value.trim();
+  if (!regno) { showMsg('Enter a registration number!'); return; }
+  const res = await callAPI('check_vehicle', { regno });
+  const el = document.getElementById('check-result');
+  el.textContent = res.msg;
+  el.style.color = res.type === 'resident' ? 'green' : res.type === 'guest' ? 'orange' : 'red';
+}
+
+// Load residents when page opens
+loadResidents();
+</script>
+
+</body>
+</html>
